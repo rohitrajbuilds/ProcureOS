@@ -1,8 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { createProcurement } from "@/services/api";
+import { getErrorMessage } from "@/services/errors";
+
+const loadingSteps = [
+  "Screening vendor dataset",
+  "Running negotiation rounds",
+  "Evaluating supplier risk",
+  "Retrieving pricing and history context",
+  "Finalizing award recommendation"
+];
 
 export default function ProcurementForm({ onCreated }) {
   const [form, setForm] = useState({
@@ -15,11 +24,26 @@ export default function ProcurementForm({ onCreated }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [decisionLink, setDecisionLink] = useState("");
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    if (!loading) {
+      setActiveStep(0);
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActiveStep((current) => (current + 1) % loadingSteps.length);
+    }, 1200);
+
+    return () => window.clearInterval(intervalId);
+  }, [loading]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
     setMessage("");
+    setDecisionLink("");
     try {
       const response = await createProcurement({
         ...form,
@@ -31,7 +55,7 @@ export default function ProcurementForm({ onCreated }) {
       setForm({ ...form, title: "", requirements: "" });
       await onCreated();
     } catch (error) {
-      setMessage(error.response?.data?.detail || "Unable to create procurement request.");
+      setMessage(getErrorMessage(error, "Unable to create procurement request."));
     } finally {
       setLoading(false);
     }
@@ -87,6 +111,37 @@ export default function ProcurementForm({ onCreated }) {
           {loading ? "Running agents..." : "Run procurement workflow"}
         </button>
       </form>
+      {loading ? (
+        <div className="mt-4 rounded-3xl border border-ink/10 bg-ink px-4 py-4 text-white">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-white/60">Workflow in progress</p>
+              <p className="mt-2 text-sm font-medium">{loadingSteps[activeStep]}</p>
+            </div>
+            <div className="h-10 w-10 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+          </div>
+          <div className="mt-4 grid gap-2">
+            {loadingSteps.map((step, index) => {
+              const isActive = index === activeStep;
+              const isCompleted = index < activeStep;
+              return (
+                <div
+                  className={`overflow-hidden rounded-2xl border px-3 py-2 text-xs transition ${
+                    isActive
+                      ? "border-white/30 bg-white/10"
+                      : isCompleted
+                        ? "border-signal/40 bg-signal/20 text-white"
+                        : "border-white/10 bg-white/5 text-white/65"
+                  }`}
+                  key={step}
+                >
+                  {isActive ? <div className="shimmer -mx-3 -my-2 px-3 py-2">{step}</div> : step}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
       {message ? (
         <div className="mt-4 rounded-2xl border border-signal/20 bg-signal/5 px-4 py-4 text-sm text-slate-700">
           <p>{message}</p>

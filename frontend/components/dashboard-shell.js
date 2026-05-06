@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { clearSession, getUser } from "@/services/auth";
+import { Skeleton } from "@/components/skeleton";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -32,7 +33,9 @@ export default function DashboardShell({ children }) {
         <aside className="panel p-5">
           <p className="text-xs uppercase tracking-[0.35em] text-slate-400">ProcureOS</p>
           <h2 className="mt-3 font-display text-3xl text-ink">Command center</h2>
-          <p className="mt-4 text-sm text-slate-500">{user?.full_name || "Authenticated user"}</p>
+          <div className="mt-4">
+            {user ? <p className="text-sm text-slate-500">{user.full_name}</p> : <Skeleton className="h-4 w-32" />}
+          </div>
           <nav className="mt-8 space-y-2">
             {links.map((link) => {
               const active = pathname === link.href;

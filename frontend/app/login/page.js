@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { login } from "@/services/api";
+import { getErrorMessage } from "@/services/errors";
 import { setSession } from "@/services/auth";
 
 export default function LoginPage() {
@@ -22,7 +23,7 @@ export default function LoginPage() {
       setSession(response.data);
       router.push("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.detail || "Unable to sign in");
+      setError(getErrorMessage(err, "Unable to sign in"));
     } finally {
       setLoading(false);
     }

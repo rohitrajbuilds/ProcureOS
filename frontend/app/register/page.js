@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { register } from "@/services/api";
+import { getErrorMessage } from "@/services/errors";
 import { setSession } from "@/services/auth";
 
 export default function RegisterPage() {
@@ -22,7 +23,7 @@ export default function RegisterPage() {
       setSession(response.data);
       router.push("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.detail || "Unable to create account");
+      setError(getErrorMessage(err, "Unable to create account"));
     } finally {
       setLoading(false);
     }

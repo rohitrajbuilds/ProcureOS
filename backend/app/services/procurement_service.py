@@ -10,6 +10,32 @@ from app.schemas.procurement import ProcurementResult, PurchaseRequestCreate
 from app.services.vendor_service import get_vendors_for_category
 
 
+def _to_json_safe(value):
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if isinstance(value, list):
+        return [_to_json_safe(item) for item in value]
+    if isinstance(value, tuple):
+        return [_to_json_safe(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _to_json_safe(item) for key, item in value.items()}
+    if isinstance(value, Vendor):
+        return {
+            "id": value.id,
+            "name": value.name,
+            "category": value.category,
+            "region": value.region,
+            "base_price": value.base_price,
+            "quality_score": value.quality_score,
+            "reliability_score": value.reliability_score,
+            "sustainability_score": value.sustainability_score,
+            "risk_flags": value.risk_flags,
+            "historical_success_rate": value.historical_success_rate,
+            "summary": value.summary,
+        }
+    return str(value)
+
+
 def _serialize_result(request: PurchaseRequest) -> ProcurementResult:
     return ProcurementResult(
         request_id=request.id,
@@ -72,7 +98,7 @@ def create_procurement_request(db: Session, current_user: User, payload: Purchas
             "selected_vendor": workflow["decision_output"]["selected_vendor"],
             "alternatives": workflow["decision_output"]["alternatives"],
             "retrieved_context": workflow["retrieved_context"],
-            "agent_state": workflow["agent_state"],
+            "agent_state": _to_json_safe(workflow["agent_state"]),
         },
     )
     db.add(decision_record)

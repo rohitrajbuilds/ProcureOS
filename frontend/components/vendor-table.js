@@ -1,4 +1,12 @@
 export default function VendorTable({ vendors }) {
+  if (vendors.length === 0) {
+    return (
+      <div className="rounded-3xl border border-dashed border-slate-300 bg-white/50 px-6 py-12 text-center">
+        <p className="text-sm text-slate-500">No vendors found for this dataset.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200">
       <div className="grid grid-cols-[1.5fr_1fr_0.8fr_0.8fr_0.8fr] gap-3 bg-slate-100 px-4 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
