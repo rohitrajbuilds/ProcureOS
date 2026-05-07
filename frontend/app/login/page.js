@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const onSubmit = async (event) => {
     event.preventDefault();
@@ -29,6 +30,23 @@ export default function LoginPage() {
     }
   };
 
+  const useDemoWorkspace = async () => {
+    setDemoLoading(true);
+    setError("");
+    try {
+      const response = await login({
+        email: "demo@procureos.ai",
+        password: "ProcureOSDemo123"
+      });
+      setSession(response.data);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(getErrorMessage(err, "Unable to sign in to the demo workspace"));
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="panel grid w-full max-w-5xl overflow-hidden lg:grid-cols-[1.1fr_0.9fr]">
@@ -38,6 +56,23 @@ export default function LoginPage() {
           <p className="mt-6 max-w-lg text-sm text-white/75">
             Run vendor discovery, negotiation, risk analysis, and selection in one auditable workflow.
           </p>
+          <div className="mt-8 rounded-3xl border border-white/15 bg-white/10 px-5 py-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-white/55">Demo workspace</p>
+            <p className="mt-3 text-sm text-white/80">
+              Use the seeded demo tenant for live walkthroughs without creating a new account each time.
+            </p>
+            <button
+              className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-slate-100"
+              disabled={demoLoading || loading}
+              onClick={useDemoWorkspace}
+              type="button"
+            >
+              {demoLoading ? "Opening demo..." : "Continue with demo workspace"}
+            </button>
+            <p className="mt-3 text-xs text-white/55">
+              Demo login: <span className="font-semibold text-white">demo@procureos.ai</span>
+            </p>
+          </div>
         </div>
         <div className="px-8 py-10 lg:px-12">
           <h2 className="text-2xl font-semibold text-ink">Sign in</h2>
@@ -62,6 +97,15 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Login"}
             </button>
           </form>
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+            <p className="font-semibold text-ink">Demo credentials</p>
+            <p className="mt-1">
+              Email: <span className="font-medium text-ink">demo@procureos.ai</span>
+            </p>
+            <p>
+              Password: <span className="font-medium text-ink">ProcureOSDemo123</span>
+            </p>
+          </div>
           <p className="mt-6 text-sm text-slate-500">
             New here?{" "}
             <Link className="font-semibold text-signal" href="/register">

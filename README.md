@@ -197,7 +197,7 @@ Frontend service:
 ## Demo User Flow
 
 1. Open the frontend at `http://localhost:3000`
-2. Register a new account
+2. Use the seeded demo account or register a new account
 3. Log in to the dashboard
 4. Create a procurement request with title, category, budget, quantity, and requirements
 5. The system automatically:
@@ -208,6 +208,13 @@ Frontend service:
    - retrieves historical context with FAISS
    - selects a final vendor with reasoning
 6. Review the decision dossier and negotiation logs
+
+### Demo account
+
+For presentations and quick smoke tests, ProcureOS seeds a demo user automatically on startup:
+
+- Email: `demo@procureos.ai`
+- Password: `ProcureOSDemo123`
 
 ## Demo API Flow
 
