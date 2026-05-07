@@ -1,140 +1,170 @@
 # ProcureOS AWS Deployment
 
-ProcureOS is now prepared for an AWS deployment path that works well for a credit-based AWS account:
-
-- Frontend: AWS Amplify Hosting
-- Backend: AWS App Runner
-- Database: Amazon RDS for PostgreSQL
-
-This approach keeps the frontend and backend managed, while still letting you use PostgreSQL instead of the local SQLite fallback.
-
-## Recommended AWS Architecture
-
-- `frontend/` -> Amplify Hosting
-- `backend/` -> App Runner source-based service
-- PostgreSQL -> RDS PostgreSQL
-
-## Why this setup
-
-- Amplify natively supports Next.js SSR apps, including Next.js 14.
-- App Runner supports source-based Python services and monorepo source directories.
-- RDS PostgreSQL keeps the backend aligned with production-style database usage.
-
-## 1. Deploy the database on Amazon RDS
-
-Create a PostgreSQL database in RDS.
-
-Suggested settings for a prototype:
-
-- Engine: PostgreSQL
-- Public access: enabled for the simplest prototype setup
-- Store the endpoint, username, password, port, and database name
-
-Construct the backend database URL in this format:
-
-`postgresql+psycopg2://USERNAME:PASSWORD@HOST:5432/DATABASE`
-
-## 2. Deploy the backend on AWS App Runner
-
-AWS App Runner supports source-based Python services and reads `apprunner.yaml` from the service source directory.
-
-Relevant file:
-
-- `backend/apprunner.yaml`
-
-### App Runner console steps
-
-1. Open AWS App Runner
-2. Choose `Create service`
-3. Choose `Source code repository`
-4. Connect your GitHub repository
-5. Select this repo
-6. Branch: `main`
-7. Source directory: `backend`
-8. Configuration source: `Use configuration file`
-
-### Backend environment variables to add in App Runner
-
-Set these in the App Runner console:
-
-- `DATABASE_URL=postgresql+psycopg2://USERNAME:PASSWORD@HOST:5432/DATABASE`
-- `SECRET_KEY=<generate-a-long-random-secret>`
-- `FRONTEND_URL=https://your-amplify-app.amplifyapp.com`
-- `CORS_ORIGINS=https://your-amplify-app.amplifyapp.com`
-- Optional: `OPENAI_API_KEY=<your-key>`
-
-### Backend health check
-
-Use:
-
-`/health`
-
-After deployment, save the App Runner URL, for example:
-
-`https://abc123.us-east-1.awsapprunner.com`
-
-## 3. Deploy the frontend on AWS Amplify
-
-Amplify supports Next.js SSR applications and monorepo builds.
-
-Relevant file:
-
-- `amplify.yml`
-
-### Amplify console steps
-
-1. Open AWS Amplify
-2. Choose `Create new app`
-3. Choose GitHub as the source
-4. Select this repository
-5. Select branch `main`
-6. Enable `My app is a monorepo`
-7. Set the app root to:
-
-`frontend`
-
-Amplify will set:
-
-`AMPLIFY_MONOREPO_APP_ROOT=frontend`
-
-### Frontend environment variable
-
-Add:
-
-`NEXT_PUBLIC_API_URL=https://your-apprunner-service.awsapprunner.com/api`
-
-## 4. Wire the services together
-
-After Amplify is deployed:
-
-1. Copy the Amplify app URL
-2. Go back to App Runner
-3. Update:
-   - `FRONTEND_URL=https://your-amplify-url`
-   - `CORS_ORIGINS=https://your-amplify-url`
-4. Redeploy the backend
-
-## 5. Post-deploy verification
-
-Check these in order:
-
-1. App Runner health:
-   - `https://your-apprunner-url/health`
-2. Open the Amplify frontend
-3. Register a user
-4. Log in
-5. Open Vendors page
-6. Create a procurement request
-7. Open the decision page
-
-## 6. Cost guidance for a free-credit account
-
-This managed setup is straightforward, but App Runner and RDS can consume credits faster than a single EC2 deployment.
-
-If your goal is the absolute cheapest AWS hosting path, the next-best option is:
+For maximum AWS free-credit efficiency, the recommended path is now:
 
 - one small EC2 instance
 - Docker Compose
-- SQLite for demo usage
+- SQLite persistence
+- Nginx reverse proxy
 
-That option is cheaper, but less managed and less production-like than Amplify + App Runner + RDS.
+This avoids the recurring managed-service cost of App Runner, Amplify, and RDS.
+
+## Recommended AWS Architecture
+
+- `frontend/` -> Next.js container
+- `backend/` -> FastAPI container
+- `nginx` -> reverse proxy on port `80`
+- SQLite -> persisted through a Docker volume
+
+Relevant files:
+
+- `docker-compose.ec2.yml`
+- `deploy/ec2/nginx.conf`
+- `.env.ec2.example`
+
+## Why this is cheaper
+
+- One EC2 instance is usually the lowest-friction AWS option for a credit-based account.
+- SQLite removes managed database cost entirely.
+- Nginx lets the frontend and backend share one public endpoint.
+- The frontend is built with `NEXT_PUBLIC_API_URL=/api`, so the browser talks to the backend through the same host.
+
+## 1. Launch the EC2 instance
+
+Use an EC2 instance type that is currently free-tier eligible for your account and region.
+
+AWS documents that current free-tier eligibility depends on account creation date, and newer accounts use a credit-based model with eligible instance types such as `t3.micro` and `t4g.micro`, while older accounts may use `t2.micro` or `t3.micro`.
+
+Recommended practical choice:
+
+- Amazon Linux 2023
+- `t3.micro` if available and free-tier eligible in your account
+
+Important AWS note:
+
+- AWS documents that `t3.micro` can default to Unlimited mode, which can incur extra charges if sustained CPU usage is high.
+
+## 2. Configure the EC2 security group
+
+Allow inbound:
+
+- `22` for SSH
+- `80` for HTTP
+
+Optional later:
+
+- `443` for HTTPS if you add TLS
+
+## 3. Connect to the EC2 instance
+
+SSH into the machine:
+
+```bash
+ssh -i your-key.pem ec2-user@YOUR_EC2_PUBLIC_IP
+```
+
+## 4. Install Docker and Docker Compose
+
+On Amazon Linux 2023, install Docker and start it:
+
+```bash
+sudo dnf update -y
+sudo dnf install -y docker
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker ec2-user
+```
+
+Log out and SSH back in so the Docker group change applies.
+
+Install the Docker Compose plugin if needed:
+
+```bash
+docker compose version
+```
+
+If the command is missing, install the Compose plugin using your OS package manager or Docker’s current plugin instructions for Amazon Linux.
+
+## 5. Clone the repository
+
+```bash
+git clone https://github.com/rohitrajbuilds/ProcureOS.git
+cd ProcureOS
+```
+
+## 6. Create the EC2 environment file
+
+Copy the example file:
+
+```bash
+cp .env.ec2.example .env.ec2
+```
+
+Edit `.env.ec2` and set:
+
+- `APP_ORIGIN=http://YOUR_EC2_PUBLIC_IP`
+- `SECRET_KEY=<a-long-random-secret>`
+
+If you later attach a domain, replace the IP with:
+
+- `http://your-domain.com`
+
+## 7. Start the application
+
+Run:
+
+```bash
+docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build
+```
+
+This starts:
+
+- backend
+- frontend
+- nginx
+
+## 8. Verify the deployment
+
+Check:
+
+- App root:
+  `http://YOUR_EC2_PUBLIC_IP`
+- Backend health:
+  `http://YOUR_EC2_PUBLIC_IP/health`
+
+Then test:
+
+1. Register
+2. Log in
+3. Open Vendors
+4. Create a procurement request
+5. Open the decision page
+
+## 9. Updating the app later
+
+From the EC2 instance:
+
+```bash
+git pull
+docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build
+```
+
+## 10. Optional next step for production polish
+
+Once the app is working, the next good upgrade is:
+
+- attach an Elastic IP or domain
+- add HTTPS with Nginx and Let’s Encrypt
+
+## AWS references used
+
+These current AWS docs support this deployment direction:
+
+- EC2 free-tier eligibility and credit model:
+  https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-free-tier-usage.html
+- Launching EC2 instances:
+  https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/LaunchingAndUsingInstances.html
+- App Runner source-directory behavior:
+  https://docs.aws.amazon.com/apprunner/latest/dg/service-source-code.html
+- Amplify monorepo config:
+  https://docs.aws.amazon.com/amplify/latest/userguide/monorepo-configuration.html

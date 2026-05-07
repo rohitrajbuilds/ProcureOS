@@ -135,33 +135,25 @@ Detailed deployment guide:
 
 ## AWS Deployment
 
-This repository is also configured for an AWS deployment path that works well for a credit-based AWS account:
+This repository is also configured for a lower-cost AWS path centered on a single EC2 instance.
 
-- AWS Amplify Hosting for the Next.js frontend
-- AWS App Runner for the FastAPI backend
-- Amazon RDS PostgreSQL for the database
+Recommended AWS path for a credit-based account:
 
-AWS-specific files:
+- one EC2 instance
+- Docker Compose
+- SQLite persistence
+- Nginx reverse proxy
 
-- `amplify.yml`
-- `backend/apprunner.yaml`
+AWS EC2 deployment files:
+
+- `docker-compose.ec2.yml`
+- `deploy/ec2/nginx.conf`
+- `.env.ec2.example`
 - `AWS_DEPLOY.md`
 
-Required AWS environment variables:
+The frontend is configured to build against `/api` for this EC2 path, so both frontend and backend are served from one public host through Nginx.
 
-Backend:
-
-- `DATABASE_URL=postgresql+psycopg2://USERNAME:PASSWORD@HOST:5432/DATABASE`
-- `SECRET_KEY=<random-secret>`
-- `FRONTEND_URL=https://your-amplify-app.amplifyapp.com`
-- `CORS_ORIGINS=https://your-amplify-app.amplifyapp.com`
-- Optional `OPENAI_API_KEY`
-
-Frontend:
-
-- `NEXT_PUBLIC_API_URL=https://your-apprunner-service.awsapprunner.com/api`
-
-Use `AWS_DEPLOY.md` for the full AWS step-by-step flow.
+Use `AWS_DEPLOY.md` for the full EC2 deployment flow.
 
 ## Railway Deployment
 
