@@ -99,6 +99,40 @@ Services:
 - Backend: `http://localhost:8000`
 - PostgreSQL: `localhost:5432`
 
+## Render + Vercel Deployment
+
+This repository is now configured for:
+
+- Render: FastAPI backend + managed PostgreSQL
+- Vercel: Next.js frontend
+
+### Render backend
+
+- Blueprint file: `render.yaml`
+- Root directory: `backend`
+- Build command: `pip install -r requirements.txt`
+- Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Health check: `/health`
+
+Required backend environment variables:
+
+- `FRONTEND_URL=https://your-vercel-app.vercel.app`
+- `CORS_ORIGINS=https://your-vercel-app.vercel.app`
+- Optional: `OPENAI_API_KEY`
+
+### Vercel frontend
+
+- Root directory: `frontend`
+- Config file: `frontend/vercel.json`
+
+Required frontend environment variable:
+
+- `NEXT_PUBLIC_API_URL=https://your-render-service.onrender.com/api`
+
+Detailed deployment guide:
+
+- `RENDER_VERCEL_DEPLOY.md`
+
 ## Railway Deployment
 
 This repository is configured for Railway as an isolated monorepo with:

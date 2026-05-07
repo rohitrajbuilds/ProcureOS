@@ -12,8 +12,25 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./procureos.db"
     openai_api_key: str | None = None
     frontend_url: str = "http://localhost:3000"
+    cors_origins: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    def allowed_origins(self) -> list[str]:
+        defaults = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ]
+
+        configured = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        frontend_origin = self.frontend_url.strip() if self.frontend_url else ""
+
+        origins = defaults + configured
+        if frontend_origin:
+            origins.append(frontend_origin)
+
+        # Preserve order while removing duplicates.
+        return list(dict.fromkeys(origins))
 
 
 @lru_cache

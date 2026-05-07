@@ -7,6 +7,8 @@ from app.database.init_db import initialize_database
 from app.rag.store import rag_store
 from app.routers import analytics, auth, decision, procurement, vendors
 
+settings = get_settings()
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -24,8 +26,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=settings.allowed_origins(),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
