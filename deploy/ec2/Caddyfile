@@ -2,7 +2,7 @@
   auto_https disable_redirects
 }
 
-{$APP_HOST} {
+http://{$APP_HOST}, https://{$APP_HOST} {
   encode gzip
 
   handle_path /api/* {
