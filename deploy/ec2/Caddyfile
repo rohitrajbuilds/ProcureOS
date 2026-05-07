@@ -1,7 +1,3 @@
-{
-  auto_https on
-}
-
 {$APP_HOST} {
   encode gzip
 
