@@ -24,16 +24,23 @@ services:
       - backend
     restart: unless-stopped
 
-  nginx:
-    image: nginx:1.27-alpine
+  caddy:
+    image: caddy:2.10-alpine
     depends_on:
       - frontend
       - backend
+    environment:
+      APP_HOST: ${APP_HOST}
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./deploy/ec2/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/ec2/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     restart: unless-stopped
 
 volumes:
   backend_data:
+  caddy_data:
+  caddy_config:

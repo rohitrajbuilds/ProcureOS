@@ -142,16 +142,16 @@ Recommended AWS path for a credit-based account:
 - one EC2 instance
 - Docker Compose
 - SQLite persistence
-- Nginx reverse proxy
+- Caddy reverse proxy with automatic HTTPS
 
 AWS EC2 deployment files:
 
 - `docker-compose.ec2.yml`
-- `deploy/ec2/nginx.conf`
+- `deploy/ec2/Caddyfile`
 - `.env.ec2.example`
 - `AWS_DEPLOY.md`
 
-The frontend is configured to build against `/api` for this EC2 path, so both frontend and backend are served from one public host through Nginx.
+The frontend is configured to build against `/api` for this EC2 path, so both frontend and backend are served from one public host through Caddy.
 
 Use `AWS_DEPLOY.md` for the full EC2 deployment flow.
 

@@ -5,7 +5,7 @@ For maximum AWS free-credit efficiency, the recommended path is now:
 - one small EC2 instance
 - Docker Compose
 - SQLite persistence
-- Nginx reverse proxy
+- Caddy reverse proxy with automatic HTTPS
 
 This avoids the recurring managed-service cost of App Runner, Amplify, and RDS.
 
@@ -19,14 +19,14 @@ This avoids the recurring managed-service cost of App Runner, Amplify, and RDS.
 Relevant files:
 
 - `docker-compose.ec2.yml`
-- `deploy/ec2/nginx.conf`
+- `deploy/ec2/Caddyfile`
 - `.env.ec2.example`
 
 ## Why this is cheaper
 
 - One EC2 instance is usually the lowest-friction AWS option for a credit-based account.
 - SQLite removes managed database cost entirely.
-- Nginx lets the frontend and backend share one public endpoint.
+- Caddy lets the frontend and backend share one public endpoint and can automatically provision HTTPS certificates.
 - The frontend is built with `NEXT_PUBLIC_API_URL=/api`, so the browser talks to the backend through the same host.
 
 ## 1. Launch the EC2 instance
@@ -50,10 +50,7 @@ Allow inbound:
 
 - `22` for SSH
 - `80` for HTTP
-
-Optional later:
-
-- `443` for HTTPS if you add TLS
+- `443` for HTTPS
 
 ## 3. Connect to the EC2 instance
 
@@ -102,12 +99,13 @@ cp .env.ec2.example .env.ec2
 
 Edit `.env.ec2` and set:
 
-- `APP_ORIGIN=http://YOUR_EC2_PUBLIC_IP`
+- `APP_HOST=procureos.YOUR_EC2_PUBLIC_IP.sslip.io`
+- `APP_ORIGIN=https://procureos.YOUR_EC2_PUBLIC_IP.sslip.io`
 - `SECRET_KEY=<a-long-random-secret>`
 
-If you later attach a domain, replace the IP with:
+This uses `sslip.io`, which automatically maps the hostname to your EC2 public IP and avoids buying a domain just for a prototype.
 
-- `http://your-domain.com`
+If you later attach your own domain, replace both values with your real domain.
 
 ## 7. Start the application
 
@@ -121,16 +119,16 @@ This starts:
 
 - backend
 - frontend
-- nginx
+- caddy
 
 ## 8. Verify the deployment
 
 Check:
 
 - App root:
-  `http://YOUR_EC2_PUBLIC_IP`
+  `https://procureos.YOUR_EC2_PUBLIC_IP.sslip.io`
 - Backend health:
-  `http://YOUR_EC2_PUBLIC_IP/health`
+  `https://procureos.YOUR_EC2_PUBLIC_IP.sslip.io/health`
 
 Then test:
 
@@ -153,8 +151,8 @@ docker compose --env-file .env.ec2 -f docker-compose.ec2.yml up -d --build
 
 Once the app is working, the next good upgrade is:
 
-- attach an Elastic IP or domain
-- add HTTPS with Nginx and Let’s Encrypt
+- attach an Elastic IP or your own domain
+- replace the `sslip.io` host with a branded domain
 
 ## AWS references used
 
