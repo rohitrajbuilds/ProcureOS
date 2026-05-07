@@ -141,3 +141,14 @@ def get_decision_by_request(db: Session, request_id: int, owner_id: int) -> Proc
     if not request or not request.decision_record:
         return None
     return _serialize_result(request)
+
+
+def reset_procurements_for_user(db: Session, owner_id: int) -> int:
+    requests = db.query(PurchaseRequest).filter(PurchaseRequest.owner_id == owner_id).all()
+    reset_count = len(requests)
+
+    for purchase_request in requests:
+        db.delete(purchase_request)
+
+    db.commit()
+    return reset_count

@@ -6,8 +6,8 @@ import DashboardShell from "@/components/dashboard-shell";
 import { DashboardOverviewSkeleton } from "@/components/loading-state";
 import ProcurementForm from "@/components/procurement-form";
 import StatCard from "@/components/stat-card";
-import { fetchAnalytics, fetchProcurements } from "@/services/api";
-import { useProtectedRoute } from "@/services/auth";
+import { fetchAnalytics, fetchProcurements, resetDemoWorkspace } from "@/services/api";
+import { getUser, useProtectedRoute } from "@/services/auth";
 import { getErrorMessage } from "@/services/errors";
 
 export default function DashboardPage() {
@@ -15,7 +15,10 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState(null);
   const [procurements, setProcurements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState("");
+  const [workspaceMessage, setWorkspaceMessage] = useState("");
+  const [isDemoUser, setIsDemoUser] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -35,8 +38,33 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    const user = getUser();
+    setIsDemoUser(user?.email === "demo@procureos.ai");
     loadData();
   }, []);
+
+  const handleResetDemo = async () => {
+    const confirmed = window.confirm(
+      "Reset the demo workspace? This will delete all demo procurement requests, negotiation logs, and decisions."
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setResetting(true);
+    setError("");
+    setWorkspaceMessage("");
+
+    try {
+      const response = await resetDemoWorkspace();
+      await loadData();
+      setWorkspaceMessage(`Demo workspace reset. Cleared ${response.data.reset_requests} request(s).`);
+    } catch (resetError) {
+      setError(getErrorMessage(resetError, "Unable to reset the demo workspace."));
+    } finally {
+      setResetting(false);
+    }
+  };
 
   return (
     <DashboardShell>
@@ -47,11 +75,32 @@ export default function DashboardPage() {
           ) : (
             <>
               <div className="panel p-6">
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Overview</p>
-                <h1 className="mt-3 text-3xl font-semibold text-ink">Autonomous procurement command center</h1>
-                <p className="mt-3 max-w-2xl text-sm text-slate-500">
-                  Create a purchase request and let the agent stack handle vendor discovery, negotiation, risk review, and final selection.
-                </p>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Overview</p>
+                    <h1 className="mt-3 text-3xl font-semibold text-ink">Autonomous procurement command center</h1>
+                    <p className="mt-3 max-w-2xl text-sm text-slate-500">
+                      Create a purchase request and let the agent stack handle vendor discovery, negotiation, risk review, and final selection.
+                    </p>
+                  </div>
+                  {isDemoUser ? (
+                    <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 lg:max-w-sm">
+                      <p className="text-xs uppercase tracking-[0.28em] text-amber-700">Demo mode</p>
+                      <p className="mt-2 text-sm text-amber-900">
+                        Reset the workspace before each presentation to start from a clean slate.
+                      </p>
+                      <button
+                        className="button-secondary mt-4 w-full disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={resetting}
+                        onClick={handleResetDemo}
+                        type="button"
+                      >
+                        {resetting ? "Resetting demo workspace..." : "Reset demo workspace"}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+                {workspaceMessage ? <p className="mt-4 text-sm font-medium text-emerald-700">{workspaceMessage}</p> : null}
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Requests" value={analytics?.spend_summary.total_requests ?? 0} />

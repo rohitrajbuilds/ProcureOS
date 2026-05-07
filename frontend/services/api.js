@@ -21,5 +21,6 @@ export const createProcurement = (payload) => api.post("/procurement/create", pa
 export const fetchProcurements = () => api.get("/procurement");
 export const fetchDecision = (id) => api.get(`/procurement/decision/${id}`);
 export const fetchAnalytics = () => api.get("/analytics");
+export const resetDemoWorkspace = () => api.post("/procurement/reset-demo");
 
 export default api;
