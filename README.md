@@ -99,6 +99,45 @@ Services:
 - Backend: `http://localhost:8000`
 - PostgreSQL: `localhost:5432`
 
+## Railway Deployment
+
+This repository is configured for Railway as an isolated monorepo with:
+
+- `backend` service from `/backend`
+- `frontend` service from `/frontend`
+- `Postgres` from Railway managed PostgreSQL
+
+### Railway setup
+
+1. Push this repository to GitHub.
+2. Create a Railway project connected to the repo.
+3. Add a `Postgres` service.
+4. Add a `backend` service and set:
+   - Root Directory: `/backend`
+   - Config-as-Code path: `/backend/railway.json`
+5. Add a `frontend` service and set:
+   - Root Directory: `/frontend`
+   - Config-as-Code path: `/frontend/railway.json`
+
+### Railway environment variables
+
+Backend service:
+
+- `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+- `SECRET_KEY=<generate-a-long-random-secret>`
+- Optional: `FRONTEND_URL=https://${{frontend.RAILWAY_PUBLIC_DOMAIN}}`
+
+Frontend service:
+
+- `NEXT_PUBLIC_API_URL=https://${{backend.RAILWAY_PUBLIC_DOMAIN}}/api`
+
+### Railway notes
+
+- The backend healthcheck path is `/health`.
+- Both Dockerfiles respect Railway's injected `PORT` variable.
+- `NEXT_PUBLIC_API_URL` is a build-time variable for Next.js, so redeploy the frontend after changing it.
+- See [RAILWAY_DEPLOY.md](E:/ProcureOS/RAILWAY_DEPLOY.md) for the focused Railway checklist.
+
 ## Demo User Flow
 
 1. Open the frontend at `http://localhost:3000`
